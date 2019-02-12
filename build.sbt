@@ -22,7 +22,8 @@ lazy val commonSettings = Seq(
     "com.github.pathikrit" %% "better-files" % betterFilesV,
     "ch.qos.logback" % "logback-classic" % logbackClassicV,
     "org.scalatest" %% "scalatest" % scalatestV % "test",
-    "io.circe" %% "circe-generic" % circeV
+    "io.circe" %% "circe-core" % circeV,
+    "io.circe" %% "circe-parser" % circeV
   )
 )
 
