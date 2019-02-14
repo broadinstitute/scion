@@ -1,14 +1,10 @@
 package scion.app
 
 import better.files.File
-import io.circe.{Json, ParsingFailure}
-import io.circe.parser.parse
+import scion.engine.ScionFacade
+import scion.engine.ScionFacade.{Command, RunCommand}
 
 object ScionApp {
-
-  trait Command
-
-  case class RunCommand(mainTag: String, files: Seq[File]) extends Command
 
   def parseArgs(args: Seq[String]): Either[String, Command] = {
     if(args.size < 1) {
@@ -24,31 +20,20 @@ object ScionApp {
             val files = args.drop(2).map(File(_))
             Right(RunCommand(mainTag, files))
           }
+        case _ =>
+          Left("The only valid command is 'run'.")
       }
     }
   }
 
-  def printParsingFailure(parsingFailure: ParsingFailure): Unit = {
-    println(parsingFailure)
-  }
-
-  def processJson(json: Json): Unit = {
-    println("Got some nice JSON!")
-    // TODO
-  }
+  val scionFacade: ScionFacade = new ScionFacade
 
   def main(args: Array[String]): Unit = {
-    for(inFileName <- args) {
-      val inFile = File(inFileName)
-      if(inFile.exists) {
-        val content = inFile.contentAsString
-        parse(content) match {
-          case Left(parsingFailure) => printParsingFailure(parsingFailure)
-          case Right(json) => processJson(json)
-        }
-      } else {
-        println(s"File $inFileName does not exist.")
-      }
+    parseArgs(args) match {
+      case Left(message) => println(message)
+      case Right(command) =>
+        val commandResult = scionFacade.execute(command)
+        println(commandResult.message)
     }
   }
 
