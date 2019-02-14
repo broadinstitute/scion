@@ -3,10 +3,9 @@ package scion.engine
 import java.io.IOException
 
 import better.files.File
-import io.circe.{Json, ParsingFailure}
-import scion.engine.ScionFacade.{Command, CommandResult, RunCommand, RunEngineResult, RunIoFailure, RunParseFailure, RunResult, RunValidationFailure}
 import io.circe.parser.parse
-import scion.engine.ScionValidator.Issue
+import io.circe.{Json, ParsingFailure}
+import scion.engine.ScionFacade.{Command, CommandResult, RunCommand, RunEngineResult, RunIoFailure, RunParseFailure, RunResult}
 
 class ScionFacade {
   def execute(command: Command): CommandResult[Command] = {
@@ -45,16 +44,10 @@ class ScionFacade {
         val jsons: Map[File, Json] = jsonEithers.collect {
           case (file, Right(json)) => (file, json)
         }
-        val validator = new ScionValidator()
         val mainTag = runCommand.mainTag
-        val issues = validator.validate(mainTag, jsons)
-        if (issues.nonEmpty) {
-          RunValidationFailure(runCommand, issues)
-        } else {
-          val engine = new ScionEngine()
-          val engineResult = engine.run(mainTag, jsons)
-          RunEngineResult(runCommand, engineResult)
-        }
+        val engine = new ScionEngine()
+        val engineResult = engine.run(mainTag, jsons)
+        RunEngineResult(runCommand, engineResult)
       }
     }
 
@@ -105,10 +98,6 @@ object ScionFacade {
         case (file, parsingFailure) => s"Problem reading $file: ${parsingFailure.getMessage}."
       }).mkString("; ")
     }
-  }
-
-  case class RunValidationFailure(command: RunCommand, issues: Seq[Issue]) extends RunFailure {
-    override def message: String = s"There were ${issues.size} issue(s): \n" + issues.map(_.message).mkString("\n")
   }
 
   case class RunEngineResult(command: RunCommand, engineResult: ScionEngine.Result) extends RunResult {
