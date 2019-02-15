@@ -1,55 +1,53 @@
 package scion.engine
 
 import io.circe.Json
-import scion.engine.JsonCrawler.{Analysis, Anchor, Context}
+import scion.engine.JsonCrawler.{Anchor, JsonWithAnchor}
 
-class JsonCrawler[V](inspector: Context[V] => Analysis[V], recorder: Analysis[V] => Unit) {
+class JsonCrawler(recorder: JsonWithAnchor => Unit) {
 
-  def crawl(json: Json, anchor: Anchor[V] = Anchor.root): Analysis[V] = {
-    val context = Context(json, anchor)
-    val analysis = inspector(context)
-    recorder(analysis)
+  def crawl(json: Json, anchor: Anchor = Anchor.root): JsonWithAnchor = {
+    val jsonWithAnchor = JsonWithAnchor(json, anchor)
+    recorder(jsonWithAnchor)
     if(json.isArray) {
       for((child, index) <- json.asArray.get.zipWithIndex) {
-        val anchor = Anchor.inArray(analysis, index)
+        val anchor = Anchor.inArray(jsonWithAnchor, index)
         crawl(child, anchor)
       }
     } else if(json.isObject) {
       for((key, child) <- json.asObject.get.toList) {
-        val anchor = Anchor.inObject(analysis, key)
+        val anchor = Anchor.inObject(jsonWithAnchor, key)
         crawl(child, anchor)
       }
     }
-    analysis
+    jsonWithAnchor
   }
 
 }
 
 object JsonCrawler {
 
-  sealed trait Anchor[+V] {
-    def parentOpt: Option[Analysis[V]]
+  sealed trait Anchor {
+    def parentOpt: Option[JsonWithAnchor]
   }
 
   object Anchor {
-    val root: Anchor[Nothing] = Root
-    def inArray[V](analysis: Analysis[V], index: Long): Anchor[V] = ArrayMembership(analysis, index)
-    def inObject[V](analysis: Analysis[V], key: String): Anchor[V] = ObjectMembership(analysis, key)
+    val root: Anchor = Root
+    def inArray(jsonWithAnchor: JsonWithAnchor, index: Long): Anchor = ArrayMembership(jsonWithAnchor, index)
+    def inObject(jsonWithAnchor: JsonWithAnchor, key: String): Anchor = ObjectMembership(jsonWithAnchor, key)
   }
 
-  object Root extends Anchor[Nothing] {
+  object Root extends Anchor {
     override def parentOpt: None.type = None
   }
 
-  sealed trait Membership[+V] extends Anchor[V] {
-    override def parentOpt: Some[Analysis[V]] = Some(parent)
-    def parent: Analysis[V]
+  sealed trait Membership extends Anchor {
+    override def parentOpt: Some[JsonWithAnchor] = Some(parent)
+    def parent: JsonWithAnchor
   }
 
-  case class ArrayMembership[+V](parent: Analysis[V], index: Long) extends Membership[V]
-  case class ObjectMembership[+V](parent: Analysis[V], key: String) extends Membership[V]
+  case class ArrayMembership(parent: JsonWithAnchor, index: Long) extends Membership
+  case class ObjectMembership(parent: JsonWithAnchor, key: String) extends Membership
 
-  case class Context[+V](json: Json, anchor: Anchor[V])
-  case class Analysis[+V](value: V, context: Context[V])
+  case class JsonWithAnchor(json: Json, anchor: Anchor)
 
 }
