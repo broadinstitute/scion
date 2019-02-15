@@ -6,11 +6,15 @@ import scion.model.ScionGraph
 
 class ScionParser {
 
+  def getTagOpt(json: Json): Option[String] = {
+    ??? // TODO
+  }
+
   def parse(json: Json): Result = {
     var graph = ScionGraph.empty
     var issues = Seq.empty[Issue]
     var foundNoErrorYet = true
-
+    ??? // TODO
     if(foundNoErrorYet) {
       Success(graph, issues)
     } else {
