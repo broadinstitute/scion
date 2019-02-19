@@ -1,38 +1,53 @@
 package scion.engine
 
 import io.circe.Json
-import scion.engine.ScionParser.{Failure, Issue, Result, Success}
-import scion.model.ScionGraph
+import scion.model.{ScionDictionary, ScionFunction, ScionGraph, ScionNativeFunctions}
+import scion.util.Result
 
 class ScionParser {
 
-  def getTagOpt(json: Json): Option[String] = {
-    ??? // TODO
-  }
-
-  def parse(json: Json): Result = {
-    var graph = ScionGraph.empty
-    var issues = Seq.empty[Issue]
-    var foundNoErrorYet = true
-    ??? // TODO
-    if(foundNoErrorYet) {
-      Success(graph, issues)
-    } else {
-      Failure(issues)
+  def getOptionalChild[V](json: Json, key: String, extractor: Json => Result[V]): Result[Option[V]] = {
+    json.asObject match {
+      case Some(jsonObject) =>
+        jsonObject(key) match {
+          case Some(childJson) =>
+            val childResult = extractor(childJson)
+            childResult.map(Some(_))
+          case None => Result.forValue(None)
+        }
+      case None => Result.forValue(None)
     }
   }
 
-}
-
-object ScionParser {
-  case class Issue(isError: Boolean, message: String)
-
-  sealed trait Result {
-    def issues: Seq[Issue]
-    def errors: Seq[Issue] = issues.filter(_.isError)
-    def warnings: Seq[Issue] = issues.filterNot(_.isError)
+  def jsonToTag(json: Json): Result[String] = {
+    json.asString match {
+      case Some(string) => Result.forValue(string)
+      case None => Result.forErrorMessage(
+        s"String expected, but got $json."
+      )
+    }
   }
 
-  final case class Success(graph: ScionGraph, issues: Seq[Issue]) extends Result
-  final case class Failure(issues: Seq[Issue]) extends Result
+  def jsonToFunction(json: Json): Result[ScionFunction] = {
+    json.asString match {
+      case Some(name) => ScionNativeFunctions.get(name)
+      case None => Result.forErrorMessage(
+        s"String expected, but got $json."
+      )
+    }
+  }
+
+  def getTagOpt(json: Json): Result[Option[String]] = getOptionalChild(json, ScionDictionary.tagKey, jsonToTag)
+
+  def parse(json: Json): Result[ScionGraph] = {
+    var result: Result[ScionGraph] = Result.forValue(ScionGraph.empty)
+    for(jsonWithAnchor <- JsonCrawler.crawl(json)) {
+
+    }
+
+
+    result
+  }
+
 }
+

@@ -1,5 +1,7 @@
 package scion.model
 
+import scion.util.Result
+
 object ScionNativeFunctions {
 
   val load: ScionFunction =
@@ -29,5 +31,12 @@ object ScionNativeFunctions {
     )
 
   val dir: Map[String, ScionFunction] = Map("load" -> load, "insert" -> insert, "save" -> save, "insert" -> insert)
+
+  def get(name: String): Result[ScionFunction] = {
+    dir.get(name) match {
+      case Some(function) => Result.forValue(function)
+      case None => Result.forErrorMessage(s"$name is not a recognized function.")
+    }
+  }
 
 }
