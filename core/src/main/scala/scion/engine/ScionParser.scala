@@ -2,45 +2,45 @@ package scion.engine
 
 import io.circe.Json
 import scion.model.{ScionDictionary, ScionFunction, ScionGraph, ScionNativeFunctions}
-import scion.util.Result
+import scion.util.ResultWithIssues
 
 class ScionParser {
 
-  def getOptionalChild[V](json: Json, key: String, extractor: Json => Result[V]): Result[Option[V]] = {
+  def getOptionalChild[V](json: Json, key: String, extractor: Json => ResultWithIssues[V]): ResultWithIssues[Option[V]] = {
     json.asObject match {
       case Some(jsonObject) =>
         jsonObject(key) match {
           case Some(childJson) =>
             val childResult = extractor(childJson)
             childResult.map(Some(_))
-          case None => Result.forValue(None)
+          case None => ResultWithIssues.forValue(None)
         }
-      case None => Result.forValue(None)
+      case None => ResultWithIssues.forValue(None)
     }
   }
 
-  def jsonToTag(json: Json): Result[String] = {
+  def jsonToTag(json: Json): ResultWithIssues[String] = {
     json.asString match {
-      case Some(string) => Result.forValue(string)
-      case None => Result.forErrorMessage(
+      case Some(string) => ResultWithIssues.forValue(string)
+      case None => ResultWithIssues.forErrorMessage(
         s"String expected, but got $json."
       )
     }
   }
 
-  def jsonToFunction(json: Json): Result[ScionFunction] = {
+  def jsonToFunction(json: Json): ResultWithIssues[ScionFunction] = {
     json.asString match {
       case Some(name) => ScionNativeFunctions.get(name)
-      case None => Result.forErrorMessage(
+      case None => ResultWithIssues.forErrorMessage(
         s"String expected, but got $json."
       )
     }
   }
 
-  def getTagOpt(json: Json): Result[Option[String]] = getOptionalChild(json, ScionDictionary.tagKey, jsonToTag)
+  def getTagOpt(json: Json): ResultWithIssues[Option[String]] = getOptionalChild(json, ScionDictionary.tagKey, jsonToTag)
 
-  def parse(json: Json): Result[ScionGraph] = {
-    var graphResult: Result[ScionGraph] = Result.forValue(ScionGraph.empty)
+  def parse(json: Json): ResultWithIssues[ScionGraph] = {
+    val graphResultBox: ResultWithIssues.Box[ScionGraph] = ResultWithIssues.Box.forValue(ScionGraph.empty)
     for(jsonWithAnchor <- JsonCrawler.crawl(json)) {
       val json = jsonWithAnchor.json
       val tagResult = getOptionalChild(json, ScionDictionary.tagKey, jsonToTag)
@@ -51,12 +51,9 @@ class ScionParser {
         case (None, Some(function)) => Some(ScionGraph.Node.create(json, function))
         case (None, None) => None
       }
-      ??? // TODO
-
+      graphResultBox.insertOptional(nodeOptionResult)(_.plus(_))
     }
-
-
-    graphResult
+    graphResultBox.result
   }
 
 }

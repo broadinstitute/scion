@@ -1,11 +1,13 @@
 package scion.engine
 
 import java.io.IOException
+import java.util.UUID
 
 import better.files.File
 import io.circe.parser.parse
 import io.circe.{Json, ParsingFailure}
 import scion.engine.ScionFacade.{Command, CommandResult, RunCommand, RunEngineResult, RunIoFailure, RunParseFailure, RunResult}
+import scion.util.ResultWithIssues
 
 class ScionFacade {
   def execute(command: Command): CommandResult[Command] = {
@@ -14,7 +16,7 @@ class ScionFacade {
     }
   }
 
-  def run(runCommand: RunCommand): RunResult = {
+  def run(runCommand: RunCommand): ResultWithIssues[RunResult] = {
     val files = runCommand.files
     val contentEithers: Map[File, Either[IOException, String]] = files.map { file =>
       try {
@@ -63,47 +65,15 @@ object ScionFacade {
 
   sealed trait CommandResult[+C <: Command] {
     def command: C
-
-    def wasSuccess: Boolean
-
-    def message: String
   }
 
-  trait RunResult extends CommandResult[RunCommand] {
-    override def command: RunCommand
+  case class RunResult(uuid: UUID, command: RunCommand) extends CommandResult[RunCommand]
 
-    override def wasSuccess: Boolean
-
-    def message: String
-  }
-
-
-  trait RunFailure extends RunResult {
-    override def command: RunCommand
-
-    override def wasSuccess: Boolean = false
-  }
-
-  case class RunIoFailure(command: RunCommand, ioExceptions: Map[File, IOException]) extends RunFailure {
-    override def message: String = {
-      ioExceptions.collect({
-        case (file, ioException) => s"Problem reading $file: ${ioException.getMessage}."
-      }).mkString("; ")
+  object RunResult {
+    def apply(command: RunCommand): RunResult = {
+      val uuid = UUID.randomUUID()
+      RunResult(uuid, command)
     }
-  }
-
-  case class RunParseFailure(command: RunCommand, parsingFailures: Map[File, ParsingFailure]) extends RunFailure {
-    override def message: String = {
-      parsingFailures.collect({
-        case (file, parsingFailure) => s"Problem reading $file: ${parsingFailure.getMessage}."
-      }).mkString("; ")
-    }
-  }
-
-  case class RunEngineResult(command: RunCommand, engineResult: ScionEngine.Result) extends RunResult {
-    override def message: String = engineResult.message
-
-    override def wasSuccess: Boolean = engineResult.wasSuccess
   }
 
 }
