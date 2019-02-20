@@ -40,13 +40,23 @@ class ScionParser {
   def getTagOpt(json: Json): Result[Option[String]] = getOptionalChild(json, ScionDictionary.tagKey, jsonToTag)
 
   def parse(json: Json): Result[ScionGraph] = {
-    var result: Result[ScionGraph] = Result.forValue(ScionGraph.empty)
+    var graphResult: Result[ScionGraph] = Result.forValue(ScionGraph.empty)
     for(jsonWithAnchor <- JsonCrawler.crawl(json)) {
+      val json = jsonWithAnchor.json
+      val tagResult = getOptionalChild(json, ScionDictionary.tagKey, jsonToTag)
+      val functionResult = getOptionalChild(json, ScionDictionary.evalKey, jsonToFunction)
+      val nodeOptionResult = tagResult.func2(functionResult) {
+        case (Some(tag), Some(function)) => Some(ScionGraph.Node.create(json, tag, function))
+        case (Some(tag), None) => Some(ScionGraph.Node.create(json, tag))
+        case (None, Some(function)) => Some(ScionGraph.Node.create(json, function))
+        case (None, None) => None
+      }
+      ??? // TODO
 
     }
 
 
-    result
+    graphResult
   }
 
 }
