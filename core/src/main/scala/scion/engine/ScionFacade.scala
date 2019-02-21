@@ -29,8 +29,8 @@ class ScionFacade {
       val mainTag = runCommand.mainTag
       val engine = new ScionEngine()
       val engineResult = engine.run(mainTag, jsons)
-      engineResult.map { _ =>
-        RunResult(runCommand)
+      engineResult.map { engineResult =>
+        RunResult(runCommand, engineResult)
       }
     }
     runResult
@@ -48,12 +48,13 @@ object ScionFacade {
     def command: C
   }
 
-  case class RunResult(uuid: UUID, command: RunCommand) extends CommandResult[RunCommand]
+  case class RunResult(uuid: UUID, command: RunCommand, engineResult: ScionEngine.Result)
+    extends CommandResult[RunCommand]
 
   object RunResult {
-    def apply(command: RunCommand): RunResult = {
+    def apply(command: RunCommand, engineResult: ScionEngine.Result): RunResult = {
       val uuid = UUID.randomUUID()
-      RunResult(uuid, command)
+      RunResult(uuid, command, engineResult)
     }
   }
 
