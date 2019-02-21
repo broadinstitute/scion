@@ -138,6 +138,14 @@ object ResultWithIssues {
     }
   }
 
-  def consolidateMap[K, V](map: Map[K, ResultWithIssues[V]]): ResultWithIssues[Map[K, V]] = ??? // TODO
+  def consolidateMap[K, V](map: Map[K, ResultWithIssues[V]]): ResultWithIssues[Map[K, V]] = {
+    val issues = map.values.toSeq.flatMap(_.issues)
+    if(map.values.forall(_.wasSuccess)) {
+      val simpleMap = map.mapValues(_.get).view.force
+      ResultWithIssues.Success(simpleMap, issues)
+    } else {
+      ResultWithIssues.Failure(issues)
+    }
+  }
 
 }
