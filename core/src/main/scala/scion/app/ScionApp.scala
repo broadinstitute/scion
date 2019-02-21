@@ -33,7 +33,15 @@ object ScionApp {
       case Left(message) => println(message)
       case Right(command) =>
         val commandResult = scionFacade.execute(command)
-        println(commandResult.message)
+        if(commandResult.wasSuccess) {
+          println("Success!")
+        } else {
+          println("Failure!")
+        }
+        for(issue <- commandResult.issues) {
+          val prefix = if(issue.isError) "ERROR" else "WARN"
+          println(prefix + ":" + issue.message)
+        }
     }
   }
 

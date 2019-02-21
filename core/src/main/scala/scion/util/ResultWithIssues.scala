@@ -138,6 +138,13 @@ object ResultWithIssues {
     }
   }
 
+  def fromThrowableEither[T <: Throwable, V](either: Either[T, V]): ResultWithIssues[V] = {
+    either match {
+      case Left(throwable) => ResultWithIssues.forThrowable(throwable)
+      case Right(value) => ResultWithIssues.forValue(value)
+    }
+  }
+
   def consolidateMap[K, V](map: Map[K, ResultWithIssues[V]]): ResultWithIssues[Map[K, V]] = {
     val issues = map.values.toSeq.flatMap(_.issues)
     if(map.values.forall(_.wasSuccess)) {
