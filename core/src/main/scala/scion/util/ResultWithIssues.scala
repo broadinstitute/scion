@@ -127,7 +127,7 @@ object ResultWithIssues {
   case class SimpleError(message: String) extends Error
 
   case class ThrowableError(throwable: Throwable) extends Error {
-    override def message: String = throwable.getMessage
+    override def message: String = throwable.toString
   }
 
   def fromTrying[V](thunk: =>V): ResultWithIssues[V] = {

@@ -43,12 +43,13 @@ class ScionParser {
     val graphResultBox: ResultWithIssues.Box[ScionGraph] = ResultWithIssues.Box.forValue(ScionGraph.empty)
     for(jsonWithAnchor <- JsonCrawler.crawl(json)) {
       val json = jsonWithAnchor.json
+      val path = jsonWithAnchor.path
       val tagResult = getOptionalChild(json, ScionDictionary.tagKey, jsonToTag)
       val functionResult = getOptionalChild(json, ScionDictionary.evalKey, jsonToFunction)
       val nodeOptionResult = tagResult.func2(functionResult) {
-        case (Some(tag), Some(function)) => Some(ScionGraph.Node.create(json, tag, function))
-        case (Some(tag), None) => Some(ScionGraph.Node.create(json, tag))
-        case (None, Some(function)) => Some(ScionGraph.Node.create(json, function))
+        case (Some(tag), Some(function)) => Some(ScionGraph.Node.create(json, path, tag, function))
+        case (Some(tag), None) => Some(ScionGraph.Node.create(json, path, tag))
+        case (None, Some(function)) => Some(ScionGraph.Node.create(json, path, function))
         case (None, None) => None
       }
       graphResultBox.insertOptional(nodeOptionResult)(_.plus(_))

@@ -1,6 +1,7 @@
 package scion.engine
 
 import io.circe.Json
+import scion.model.JsonPath
 
 object JsonCrawler {
 
@@ -27,31 +28,39 @@ object JsonCrawler {
   }
 
   sealed trait Anchor {
+    def pathElementOpt: Option[JsonPath.Element]
     def parentOpt: Option[JsonWithAnchor]
+    def path: JsonPath
   }
 
   object Anchor {
     val root: Anchor = Root
 
-    def inArray(jsonWithAnchor: JsonWithAnchor, index: Long): Anchor = ArrayMembership(jsonWithAnchor, index)
+    def inArray(jsonWithAnchor: JsonWithAnchor, index: Long): Anchor =
+      Membership(jsonWithAnchor, JsonPath.IndexElement(index))
 
-    def inObject(jsonWithAnchor: JsonWithAnchor, key: String): Anchor = ObjectMembership(jsonWithAnchor, key)
+    def inObject(jsonWithAnchor: JsonWithAnchor, key: String): Anchor =
+      Membership(jsonWithAnchor, JsonPath.KeyElement(key))
   }
 
   object Root extends Anchor {
     override def parentOpt: None.type = None
+
+    override def pathElementOpt: None.type = None
+
+    override def path: JsonPath = JsonPath.root
   }
 
-  sealed trait Membership extends Anchor {
+  final case class Membership(parent: JsonWithAnchor, pathElement: JsonPath.Element) extends Anchor {
     override def parentOpt: Some[JsonWithAnchor] = Some(parent)
 
-    def parent: JsonWithAnchor
+    override def pathElementOpt: Option[JsonPath.Element] = Some(pathElement)
+
+    override def path: JsonPath = parent.anchor.path / pathElement
   }
 
-  case class ArrayMembership(parent: JsonWithAnchor, index: Long) extends Membership
-
-  case class ObjectMembership(parent: JsonWithAnchor, key: String) extends Membership
-
-  case class JsonWithAnchor(json: Json, anchor: Anchor)
+  final case class JsonWithAnchor(json: Json, anchor: Anchor) {
+    def path: JsonPath = anchor.path
+  }
 
 }

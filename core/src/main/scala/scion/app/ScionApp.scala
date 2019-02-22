@@ -2,7 +2,7 @@ package scion.app
 
 import better.files.File
 import scion.engine.ScionFacade
-import scion.engine.ScionFacade.{Command, RunCommand}
+import scion.engine.ScionFacade.{Command, RunCommand, RunResult}
 
 object ScionApp {
 
@@ -32,15 +32,26 @@ object ScionApp {
     parseArgs(args) match {
       case Left(message) => println(message)
       case Right(command) =>
-        val commandResult = scionFacade.execute(command)
-        if(commandResult.wasSuccess) {
+        val commandResultWithIssues = scionFacade.execute(command)
+        if(commandResultWithIssues.wasSuccess) {
           println("Success!")
         } else {
           println("Failure!")
         }
-        for(issue <- commandResult.issues) {
+        for(issue <- commandResultWithIssues.issues) {
           val prefix = if(issue.isError) "ERROR" else "WARN"
-          println(prefix + ":" + issue.message)
+          println(prefix + ": " + issue.message)
+        }
+        if(commandResultWithIssues.wasSuccess) {
+          val commandResult = commandResultWithIssues.get
+          commandResult match {
+            case RunResult(uuid, resultCommand, engineResult) =>
+              println(uuid)
+              println(resultCommand)
+              println(engineResult)
+            case _ =>
+              println(commandResult)
+          }
         }
     }
   }

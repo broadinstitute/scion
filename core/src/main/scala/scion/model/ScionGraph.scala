@@ -26,6 +26,8 @@ object ScionGraph {
   sealed trait Node {
     def json: Json
 
+    def path: JsonPath
+
     def isTagged: Boolean
 
     def tagOpt: Option[String]
@@ -36,18 +38,19 @@ object ScionGraph {
   }
 
   object Node {
-    def create(json: Json, tag: String): TaggedOnlyNode = TaggedOnlyNode(json, tag)
+    def create(json: Json, path: JsonPath, tag: String): TaggedOnlyNode = TaggedOnlyNode(json, path, tag)
 
-    def create(json: Json, function: ScionFunction): ExecutableOnlyNode = ExecutableOnlyNode(json, function)
+    def create(json: Json, path: JsonPath, function: ScionFunction): ExecutableOnlyNode =
+      ExecutableOnlyNode(json, path, function)
 
-    def create(json: Json, tag: String, function: ScionFunction): TaggedExecutableNode =
-      TaggedExecutableNode(json, tag, function)
+    def create(json: Json, path: JsonPath, tag: String, function: ScionFunction): TaggedExecutableNode =
+      TaggedExecutableNode(json, path, tag, function)
 
-    def create(json: Json, tagOpt: Option[String], functionOpt: Option[ScionFunction]): Option[Node] = {
+    def create(json: Json, path: JsonPath, tagOpt: Option[String], functionOpt: Option[ScionFunction]): Option[Node] = {
       (tagOpt, functionOpt) match {
-        case (Some(tag), Some(function)) => Some(create(json, tag, function))
-        case (Some(tag), None) => Some(create(json, tag))
-        case (None, Some(function)) => Some(create(json, function))
+        case (Some(tag), Some(function)) => Some(create(json, path, tag, function))
+        case (Some(tag), None) => Some(create(json, path, tag))
+        case (None, Some(function)) => Some(create(json, path, function))
         case (None, None) => None
       }
     }
@@ -69,19 +72,19 @@ object ScionGraph {
     def function: ScionFunction
   }
 
-  final case class TaggedOnlyNode(json: Json, tag: String) extends TaggedNode {
+  final case class TaggedOnlyNode(json: Json, path: JsonPath, tag: String) extends TaggedNode {
     override def isExecutable: Boolean = false
 
     override def functionOpt: Option[ScionFunction] = None
   }
 
-  final case class ExecutableOnlyNode(json: Json, function: ScionFunction) extends ExecutableNode {
+  final case class ExecutableOnlyNode(json: Json, path: JsonPath, function: ScionFunction) extends ExecutableNode {
     override def isTagged: Boolean = false
 
     override def tagOpt: Option[String] = None
   }
 
-  final case class TaggedExecutableNode(json: Json, tag: String, function: ScionFunction)
+  final case class TaggedExecutableNode(json: Json, path: JsonPath, tag: String, function: ScionFunction)
     extends TaggedNode with ExecutableNode
 
 }
