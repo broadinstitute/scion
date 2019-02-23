@@ -44,14 +44,13 @@ class ScionParser {
       case Some(jsonObject) =>
         val tagAncestryResultsByKey = jsonObject.toMap.mapValues { json =>
           json.asString match {
-            case Some(string) => ??? // TODO
-            case None =>
+            case Some(string) => TagAncestry.fromString(string)
             case None => ResultWithIssues.forErrorMessage(
               s"JSON String expected, but got $json."
             )
           }
         }.view.force
-        ??? // TODO
+        ResultWithIssues.consolidateMap(tagAncestryResultsByKey)
       case None => ResultWithIssues.forErrorMessage(
         s"JSON object expected, but got $json."
       )
@@ -63,17 +62,25 @@ class ScionParser {
 
   def parse(json: Json): ResultWithIssues[ScionGraph] = {
     val graphResultBox: ResultWithIssues.Box[ScionGraph] = ResultWithIssues.Box.forValue(ScionGraph.empty)
-    for(jsonWithAnchor <- JsonCrawler.crawl(json)) {
+    for (jsonWithAnchor <- JsonCrawler.crawl(json)) {
       val json = jsonWithAnchor.json
       val path = jsonWithAnchor.path
       val tagResult = getOptionalChild(json, ScionDictionary.tagKey, jsonToTag)
       val functionResult = getOptionalChild(json, ScionDictionary.evalKey, jsonToFunction)
-      val nodeOptionResult = tagResult.func2(functionResult) {
-        case (Some(tag), Some(function)) => Some(ScionGraph.Node.create(json, path, tag, function))
-        case (Some(tag), None) => Some(ScionGraph.Node.create(json, path, tag))
-        case (None, Some(function)) => Some(ScionGraph.Node.create(json, path, function))
-        case (None, None) => None
-      }
+      val importsResult =
+        getOptionalChild(json, ScionDictionary.importKey, jsonToImports).map {
+          _.getOrElse(Map.empty)
+        }
+      val nodeOptionResult =
+        tagResult.func3(functionResult, importsResult) { (tagOpt, functionOpt, imports) =>
+          (tagOpt, functionOpt) match {
+            case (Some(tag), Some(function)) => Some(ScionGraph.Node.create(json, path, tag, function))
+            case (Some(tag), None) => Some(ScionGraph.Node.create(json, path, tag))
+            case (None, Some(function)) => Some(ScionGraph.Node.create(json, path, function))
+            case (None, None) => None
+          }
+          // TODO imports
+        }
       graphResultBox.insertOptional(nodeOptionResult)(_.plus(_))
     }
     graphResultBox.result

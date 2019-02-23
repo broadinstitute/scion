@@ -32,6 +32,9 @@ trait ResultWithIssues[+V] {
   def flatMap[R](function: V => ResultWithIssues[R]): ResultWithIssues[R]
 
   def func2[V2, R](result2: ResultWithIssues[V2])(function2: (V, V2) => R): ResultWithIssues[R]
+
+  def func3[V2, V3, R](result2: ResultWithIssues[V2],
+                       result3: ResultWithIssues[V3])(function3: (V, V2, V3) => R): ResultWithIssues[R]
 }
 
 object ResultWithIssues {
@@ -89,6 +92,16 @@ object ResultWithIssues {
         case Failure(issues2) => Failure(issues ++ issues2)
       }
     }
+
+    override def func3[V2, V3, R](result2: ResultWithIssues[V2],
+                                  result3: ResultWithIssues[V3])(
+      function3: (V, V2, V3) => R): ResultWithIssues[R] = {
+      (result2, result3) match {
+        case (Success(value2, issues2), Success(value3, issues3)) =>
+          Success(function3(value, value2, value3), issues ++ issues2 ++ issues3)
+        case _ => Failure(issues ++ result2.issues ++ result3.issues)
+      }
+    }
   }
 
   case class Failure(issues: Seq[Issue]) extends ResultWithIssues[Nothing] {
@@ -106,6 +119,12 @@ object ResultWithIssues {
 
     override def func2[V2, R](result2: ResultWithIssues[V2])(function2: (Nothing, V2) => R): ResultWithIssues[R] =
       Failure(issues ++ result2.issues)
+
+    override def func3[V2, V3, R](result2: ResultWithIssues[V2],
+                                  result3: ResultWithIssues[V3])(
+      function3: (Nothing, V2, V3) => R): ResultWithIssues[R] = {
+      Failure(issues ++ result2.issues ++ result3.issues)
+    }
   }
 
   trait Issue {
