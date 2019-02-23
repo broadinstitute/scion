@@ -2,6 +2,7 @@ package scion.model
 
 import io.circe.Json
 import scion.model.ScionGraph.{ExecutableNode, Node, TaggedExecutableNode, TaggedNode}
+import scion.util.ResultWithIssues
 
 case class ScionGraph(executableNodes: Set[ExecutableNode], taggedNodes: Set[TaggedNode]) {
 
@@ -86,5 +87,24 @@ object ScionGraph {
 
   final case class TaggedExecutableNode(json: Json, path: JsonPath, tag: String, function: ScionFunction)
     extends TaggedNode with ExecutableNode
+
+  final case class TagAncestry(tag: String, path: JsonPath)
+
+  object TagAncestry {
+    def fromString(string: String): ResultWithIssues[TagAncestry] = {
+      val parts = string.split(":")
+      if(parts.size < 3) {
+        ResultWithIssues.forErrorMessage(s"Malformed tag reference '$string': Needs to contain at least two ':'")
+      } else if(parts(0) != "tag") {
+        ResultWithIssues.forErrorMessage(s"Malformed tag reference '$string': Needs to start with 'tag:'")
+      } else {
+        val tag = parts(1)
+        val pathString = parts.drop(2).mkString(":")
+        val regexMatchingDot = "[.]"
+        val path = JsonPath(pathString.split(regexMatchingDot).map(JsonPath.KeyElement).toSeq)
+        ResultWithIssues.forValue(TagAncestry(tag, path))
+      }
+    }
+  }
 
 }

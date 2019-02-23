@@ -1,12 +1,14 @@
 package scion.engine
 
 import io.circe.Json
+import scion.model.ScionGraph.TagAncestry
 import scion.model.{ScionDictionary, ScionFunction, ScionGraph, ScionNativeFunctions}
 import scion.util.ResultWithIssues
 
 class ScionParser {
 
-  def getOptionalChild[V](json: Json, key: String, extractor: Json => ResultWithIssues[V]): ResultWithIssues[Option[V]] = {
+  def getOptionalChild[V](json: Json, key: String,
+                          extractor: Json => ResultWithIssues[V]): ResultWithIssues[Option[V]] = {
     json.asObject match {
       case Some(jsonObject) =>
         jsonObject(key) match {
@@ -23,7 +25,7 @@ class ScionParser {
     json.asString match {
       case Some(string) => ResultWithIssues.forValue(string)
       case None => ResultWithIssues.forErrorMessage(
-        s"String expected, but got $json."
+        s"JSON String expected, but got $json."
       )
     }
   }
@@ -32,12 +34,32 @@ class ScionParser {
     json.asString match {
       case Some(name) => ScionNativeFunctions.get(name)
       case None => ResultWithIssues.forErrorMessage(
-        s"String expected, but got $json."
+        s"JSON String expected, but got $json."
       )
     }
   }
 
-  def getTagOpt(json: Json): ResultWithIssues[Option[String]] = getOptionalChild(json, ScionDictionary.tagKey, jsonToTag)
+  def jsonToImports(json: Json): ResultWithIssues[Map[String, TagAncestry]] = {
+    json.asObject match {
+      case Some(jsonObject) =>
+        val tagAncestryResultsByKey = jsonObject.toMap.mapValues { json =>
+          json.asString match {
+            case Some(string) => ??? // TODO
+            case None =>
+            case None => ResultWithIssues.forErrorMessage(
+              s"JSON String expected, but got $json."
+            )
+          }
+        }.view.force
+        ??? // TODO
+      case None => ResultWithIssues.forErrorMessage(
+        s"JSON object expected, but got $json."
+      )
+    }
+  }
+
+  def getTagOpt(json: Json): ResultWithIssues[Option[String]] =
+    getOptionalChild(json, ScionDictionary.tagKey, jsonToTag)
 
   def parse(json: Json): ResultWithIssues[ScionGraph] = {
     val graphResultBox: ResultWithIssues.Box[ScionGraph] = ResultWithIssues.Box.forValue(ScionGraph.empty)
