@@ -61,7 +61,7 @@ class ScionParser {
     getOptionalChild(json, ScionDictionary.tagKey, jsonToTag)
 
   def parse(json: Json): ResultWithIssues[ScionGraph] = {
-    val graphResultBox: ResultWithIssues.Box[ScionGraph] = ResultWithIssues.Box.forValue(ScionGraph.empty)
+    val nodeSetResultBox: ResultWithIssues.Box[Set[ScionGraph.Node]] = ResultWithIssues.Box.forValue(Set.empty)
     for (jsonWithAnchor <- JsonCrawler.crawl(json)) {
       val json = jsonWithAnchor.json
       val path = jsonWithAnchor.path
@@ -74,16 +74,15 @@ class ScionParser {
       val nodeOptionResult =
         tagResult.func3(functionResult, importsResult) { (tagOpt, functionOpt, imports) =>
           (tagOpt, functionOpt) match {
-            case (Some(tag), Some(function)) => Some(ScionGraph.Node.create(json, path, tag, function))
-            case (Some(tag), None) => Some(ScionGraph.Node.create(json, path, tag))
-            case (None, Some(function)) => Some(ScionGraph.Node.create(json, path, function))
+            case (Some(tag), Some(function)) => Some(ScionGraph.Node.create(json, path, imports, tag, function))
+            case (Some(tag), None) => Some(ScionGraph.Node.create(json, path, imports, tag))
+            case (None, Some(function)) => Some(ScionGraph.Node.create(json, path, imports, function))
             case (None, None) => None
           }
-          // TODO imports
         }
-      graphResultBox.insertOptional(nodeOptionResult)(_.plus(_))
+      nodeSetResultBox.insertOptional(nodeOptionResult)(_ + _)
     }
-    graphResultBox.result
+    nodeSetResultBox.flatMap(ScionGraph.build).result
   }
 
 }

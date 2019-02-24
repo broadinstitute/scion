@@ -49,12 +49,15 @@ object ResultWithIssues {
     def update(updater: V => V): Unit = {
       result = result.map(updater)
     }
+
     def flatUpdate(updater: V => ResultWithIssues[V]): Unit = {
       result = result.flatMap(updater)
     }
+
     def insert[V2](result2: ResultWithIssues[V2])(inserter: (V, V2) => V): Unit = {
       result = result.func2[V2, V](result2)(inserter)
     }
+
     def insertOptional[V2](result2: ResultWithIssues[Option[V2]])(inserter: (V, V2) => V): Unit = {
       val optionalInserter: (V, Option[V2]) => V = {
         case (value, Some(value2)) => inserter(value, value2)
@@ -62,6 +65,10 @@ object ResultWithIssues {
       }
       result = result.func2[Option[V2], V](result2)(optionalInserter)
     }
+
+    def map[V2](function: V => V2): Box[V2] = new Box(result.map(function))
+
+    def flatMap[V2](function: V => ResultWithIssues[V2]) = new Box(result.flatMap(function))
   }
 
   object Box {
@@ -95,7 +102,7 @@ object ResultWithIssues {
 
     override def func3[V2, V3, R](result2: ResultWithIssues[V2],
                                   result3: ResultWithIssues[V3])(
-      function3: (V, V2, V3) => R): ResultWithIssues[R] = {
+                                   function3: (V, V2, V3) => R): ResultWithIssues[R] = {
       (result2, result3) match {
         case (Success(value2, issues2), Success(value3, issues3)) =>
           Success(function3(value, value2, value3), issues ++ issues2 ++ issues3)
@@ -122,7 +129,7 @@ object ResultWithIssues {
 
     override def func3[V2, V3, R](result2: ResultWithIssues[V2],
                                   result3: ResultWithIssues[V3])(
-      function3: (Nothing, V2, V3) => R): ResultWithIssues[R] = {
+                                   function3: (Nothing, V2, V3) => R): ResultWithIssues[R] = {
       Failure(issues ++ result2.issues ++ result3.issues)
     }
   }
@@ -149,7 +156,7 @@ object ResultWithIssues {
     override def message: String = throwable.toString
   }
 
-  def fromTrying[V](thunk: =>V): ResultWithIssues[V] = {
+  def fromTrying[V](thunk: => V): ResultWithIssues[V] = {
     try {
       ResultWithIssues.forValue(thunk)
     } catch {
@@ -166,7 +173,7 @@ object ResultWithIssues {
 
   def consolidateMap[K, V](map: Map[K, ResultWithIssues[V]]): ResultWithIssues[Map[K, V]] = {
     val issues = map.values.toSeq.flatMap(_.issues)
-    if(map.values.forall(_.wasSuccess)) {
+    if (map.values.forall(_.wasSuccess)) {
       val simpleMap = map.mapValues(_.get).view.force
       ResultWithIssues.Success(simpleMap, issues)
     } else {
