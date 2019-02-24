@@ -10,6 +10,8 @@ case class ScionGraph(executableNodes: Set[ExecutableNode], taggedNodes: Set[Tag
 
 object ScionGraph {
 
+  case class TagToExecutableLink(tagged: TaggedNode, path: JsonPath, executable: ExecutableNode)
+
   def empty: ScionGraph = ScionGraph(Set.empty, Set.empty)
 
   def build(nodes: Set[Node]): ResultWithIssues[ScionGraph] = {
@@ -20,10 +22,11 @@ object ScionGraph {
       case taggedNode: TaggedNode => taggedNode
     }
     val nodesByTag = taggedNodes.map(node => (node.tag, node)).toMap
-    val tagAncestriesByExecutable = executableNodes.flatMap { extecutable =>
-      taggedNodes.map { tagged =>
-        ??? // TODO
-
+    val tagToExecutableLinks = executableNodes.flatMap { executable =>
+      taggedNodes.flatMap { tagged =>
+        tagged.path.getFromThisTo(executable.path).map { path =>
+          TagToExecutableLink(tagged, path, executable)
+        }
       }
     }
     // TODO
