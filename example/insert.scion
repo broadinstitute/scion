@@ -1,0 +1,26 @@
+{
+  "scion:tag": "simple_insert",
+  "wrapper_file": {
+    "scion:eval": "load",
+    "file": "example/wrapper"
+  },
+  "insert_file": {
+    "scion:eval": "load",
+    "file": "example/insert"
+  },
+  "combined_content": {
+    "scion:eval": "insert",
+    "before": "blub",
+    "scion:import": {
+      "template": "tag:simple_insert:wrapper_file",
+      "insert": "tag:simple_insert:insert_file"
+    }
+  },
+  "out_file": {
+    "scion:eval": "save",
+    "file": "example/combined",
+    "scion:import": {
+      "content": "tag:simple_insert:combined_content"
+    }
+  }
+}
