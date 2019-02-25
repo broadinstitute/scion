@@ -27,6 +27,8 @@ trait ResultWithIssues[+V] {
 
   def failWithError(throwable: Throwable): Failure = failWithError(ThrowableError(throwable))
 
+  def withIssues(moreIssues: Seq[Issue]): ResultWithIssues[V]
+
   def map[R](function: V => R): ResultWithIssues[R]
 
   def flatMap[R](function: V => ResultWithIssues[R]): ResultWithIssues[R]
@@ -109,6 +111,8 @@ object ResultWithIssues {
         case _ => Failure(issues ++ result2.issues ++ result3.issues)
       }
     }
+
+    override def withIssues(moreIssues: Seq[Issue]): Success[V] = copy(issues = issues ++ moreIssues)
   }
 
   case class Failure(issues: Seq[Issue]) extends ResultWithIssues[Nothing] {
@@ -132,6 +136,8 @@ object ResultWithIssues {
                                    function3: (Nothing, V2, V3) => R): ResultWithIssues[R] = {
       Failure(issues ++ result2.issues ++ result3.issues)
     }
+
+    override def withIssues(moreIssues: Seq[Issue]): Failure = copy(issues = issues ++ moreIssues)
   }
 
   trait Issue {

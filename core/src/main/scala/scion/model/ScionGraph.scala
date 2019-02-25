@@ -33,7 +33,6 @@ object ScionGraph {
         }
       }
     }
-    println(tagToExecutableLinks)
     val tagAncestryToExecutable =
       tagToExecutableLinks.map(link => (TagAncestry(link.tagged.tag, link.path), link.executable)).toMap
     val tagToExecutables =
@@ -58,7 +57,7 @@ object ScionGraph {
 
     def isExecutable: Boolean
 
-    def functionOpt: Option[ScionFunctionSignature]
+    def functionOpt: Option[ScionFunction]
   }
 
   object Node {
@@ -66,15 +65,15 @@ object ScionGraph {
                tag: String): TaggedOnlyNode = TaggedOnlyNode(file, json, path, imports, tag)
 
     def create(file: File, json: Json, path: JsonPath, imports: Map[String, TagAncestry],
-               function: ScionFunctionSignature): ExecutableOnlyNode =
+               function: ScionFunction): ExecutableOnlyNode =
       ExecutableOnlyNode(file, json, path, imports, function)
 
     def create(file: File, json: Json, path: JsonPath, imports: Map[String, TagAncestry], tag: String,
-               function: ScionFunctionSignature): TaggedExecutableNode =
+               function: ScionFunction): TaggedExecutableNode =
       TaggedExecutableNode(file, json, path, imports, tag, function)
 
     def create(file: File, json: Json, path: JsonPath, imports: Map[String, TagAncestry], tagOpt: Option[String],
-               functionOpt: Option[ScionFunctionSignature]): Option[Node] = {
+               functionOpt: Option[ScionFunction]): Option[Node] = {
       (tagOpt, functionOpt) match {
         case (Some(tag), Some(function)) => Some(create(file, json, path, imports, tag, function))
         case (Some(tag), None) => Some(create(file, json, path, imports, tag))
@@ -95,27 +94,27 @@ object ScionGraph {
   sealed trait ExecutableNode extends Node {
     override def isExecutable: Boolean = true
 
-    override def functionOpt: Option[ScionFunctionSignature] = Some(function)
+    override def functionOpt: Option[ScionFunction] = Some(function)
 
-    def function: ScionFunctionSignature
+    def function: ScionFunction
   }
 
   final case class TaggedOnlyNode(file: File, json: Json, path: JsonPath, imports: Map[String, TagAncestry],
                                   tag: String) extends TaggedNode {
     override def isExecutable: Boolean = false
 
-    override def functionOpt: Option[ScionFunctionSignature] = None
+    override def functionOpt: Option[ScionFunction] = None
   }
 
   final case class ExecutableOnlyNode(file: File, json: Json, path: JsonPath, imports: Map[String, TagAncestry],
-                                      function: ScionFunctionSignature) extends ExecutableNode {
+                                      function: ScionFunction) extends ExecutableNode {
     override def isTagged: Boolean = false
 
     override def tagOpt: Option[String] = None
   }
 
   final case class TaggedExecutableNode(file: File, json: Json, path: JsonPath, imports: Map[String, TagAncestry],
-                                        tag: String, function: ScionFunctionSignature)
+                                        tag: String, function: ScionFunction)
     extends TaggedNode with ExecutableNode
 
   final case class TagAncestry(tag: String, path: JsonPath)

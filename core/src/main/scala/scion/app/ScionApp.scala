@@ -46,9 +46,9 @@ object ScionApp {
           val commandResult = commandResultWithIssues.get
           commandResult match {
             case RunResult(uuid, resultCommand, engineResult) =>
-              println(uuid)
-              println(resultCommand)
-              println(engineResult)
+//              println(uuid)
+//              println(resultCommand)
+//              println(engineResult)
             case _ =>
               println(commandResult)
           }

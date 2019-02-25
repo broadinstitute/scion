@@ -3,7 +3,7 @@ package scion.engine
 import better.files.File
 import io.circe.Json
 import scion.model.ScionGraph.TagAncestry
-import scion.model.{ScionDictionary, ScionFunctionSignature, ScionGraph, ScionNativeFunctions}
+import scion.model._
 import scion.util.ResultWithIssues
 
 class ScionParser {
@@ -31,7 +31,7 @@ class ScionParser {
     }
   }
 
-  def jsonToFunction(json: Json): ResultWithIssues[ScionFunctionSignature] = {
+  def jsonToFunction(json: Json): ResultWithIssues[ScionFunction] = {
     json.asString match {
       case Some(name) => ScionNativeFunctions.get(name)
       case None => ResultWithIssues.forErrorMessage(
