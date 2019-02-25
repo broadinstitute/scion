@@ -1,8 +1,9 @@
 package scion.engine
 
+import better.files.File
 import io.circe.Json
 import scion.model.ScionGraph.TagAncestry
-import scion.model.{ScionDictionary, ScionFunction, ScionGraph, ScionNativeFunctions}
+import scion.model.{ScionDictionary, ScionFunctionSignature, ScionGraph, ScionNativeFunctions}
 import scion.util.ResultWithIssues
 
 class ScionParser {
@@ -30,7 +31,7 @@ class ScionParser {
     }
   }
 
-  def jsonToFunction(json: Json): ResultWithIssues[ScionFunction] = {
+  def jsonToFunction(json: Json): ResultWithIssues[ScionFunctionSignature] = {
     json.asString match {
       case Some(name) => ScionNativeFunctions.get(name)
       case None => ResultWithIssues.forErrorMessage(
@@ -60,7 +61,7 @@ class ScionParser {
   def getTagOpt(json: Json): ResultWithIssues[Option[String]] =
     getOptionalChild(json, ScionDictionary.tagKey, jsonToTag)
 
-  def parse(json: Json): ResultWithIssues[ScionGraph] = {
+  def parse(file: File, json: Json): ResultWithIssues[ScionGraph] = {
     val nodeSetResultBox: ResultWithIssues.Box[Set[ScionGraph.Node]] = ResultWithIssues.Box.forValue(Set.empty)
     for (jsonWithAnchor <- JsonCrawler.crawl(json)) {
       val json = jsonWithAnchor.json
@@ -74,9 +75,9 @@ class ScionParser {
       val nodeOptionResult =
         tagResult.func3(functionResult, importsResult) { (tagOpt, functionOpt, imports) =>
           (tagOpt, functionOpt) match {
-            case (Some(tag), Some(function)) => Some(ScionGraph.Node.create(json, path, imports, tag, function))
-            case (Some(tag), None) => Some(ScionGraph.Node.create(json, path, imports, tag))
-            case (None, Some(function)) => Some(ScionGraph.Node.create(json, path, imports, function))
+            case (Some(tag), Some(function)) => Some(ScionGraph.Node.create(file, json, path, imports, tag, function))
+            case (Some(tag), None) => Some(ScionGraph.Node.create(file, json, path, imports, tag))
+            case (None, Some(function)) => Some(ScionGraph.Node.create(file, json, path, imports, function))
             case (None, None) => None
           }
         }

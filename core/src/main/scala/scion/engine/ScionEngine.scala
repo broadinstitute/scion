@@ -10,7 +10,9 @@ class ScionEngine {
   val parser: ScionParser = new ScionParser
 
   def run(mainTag: String, jsons: Map[File, Json]): ResultWithIssues[ScionEngine.Result] = {
-    val graphsResultByKey = jsons.mapValues(parser.parse).view.force
+    val graphsResultByKey = jsons.collect {
+      case (file, json) => (file, parser.parse(file, json))
+    }
     val graphsByKeyResult = ResultWithIssues.consolidateMap(graphsResultByKey)
     graphsByKeyResult.map(ScionEngine.Result(mainTag, _))
   }

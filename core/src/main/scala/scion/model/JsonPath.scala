@@ -12,7 +12,7 @@ final case class JsonPath(elements: Seq[Element]) {
   def isChildOf(oPath: JsonPath): Boolean = elements.startsWith(oPath.elements)
 
   def getFromThisTo(oPath: JsonPath): Option[JsonPath] = {
-    if (oPath.isParentOf(this)) {
+    if (isParentOf(oPath)) {
       Some(JsonPath(oPath.elements.drop(elements.size)))
     } else {
       None
